@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forestry & Natural Resources Study App</title>
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+
+  <style>
+    :root {
+      --bg: #f4f4f9; --text: #333; --card-bg: #fff; --nav-bg: #2c3e50; 
+      --primary: #3498db; --primary-hover: #2980b9; --border: #bdc3c7; 
+      --correct: #27ae60; --incorrect: #e74c3c; --subtext: #7f8c8d;
+    }
+    [data-theme="dark"] {
+      --bg: #121212; --text: #e0e0e0; --card-bg: #1e1e1e; --nav-bg: #000; 
+      --border: #333; --subtext: #aaa;
+      --heat-0: #1e1e1e; --heat-1: #0e4429; --heat-2: #006d32; --heat-3: #26a641; --heat-4: #39d353;
+    }
+    :root[data-theme="light"] {
+      --heat-0: #ebedf0; --heat-1: #c6e48b; --heat-2: #7bc96f; --heat-3: #239a3b; --heat-4: #196127;
+    }
+    
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; padding-bottom: 80px; transition: background 0.3s, color 0.3s; }
+    header { background: var(--nav-bg); color: #fff; padding: 1rem 2rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    nav button { background: none; border: none; color: #fff; font-size: 1rem; margin-left: 0.5rem; cursor: pointer; opacity: 0.7; }
+    nav button:hover, nav button.active { opacity: 1; }
+    nav button.active { font-weight: bold; border-bottom: 2px solid #fff; padding-bottom: 2px; }
+    .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    .view { display: none; }
+    .view.active { display: block; }
+    .card { background: var(--card-bg); padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1rem; border: 1px solid var(--border); }
+    .card-hover:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; border-left: 4px solid var(--primary); }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 10px; }
+    .progress-bar { width: 100%; background: var(--border); border-radius: 4px; height: 12px; margin-top: 10px; display: flex; overflow: hidden; }
+    .stats { font-size: 0.85rem; color: var(--subtext); margin-top: 0.5rem; }
+    .btn { background: var(--primary); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 1rem; transition: 0.2s; text-align: center; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+    .btn-correct { background: var(--correct) !important; color: white !important; border-color: var(--correct) !important; }
+    .btn-incorrect { background: var(--incorrect) !important; color: white !important; border-color: var(--incorrect) !important; }
+    .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+    .btn-outline:hover { background: var(--primary); color: #fff; }
+    .options { display: grid; gap: 0.5rem; margin-top: 1.5rem; }
+    .option { background: var(--card-bg); color: var(--text); border: 2px solid var(--border); padding: 1rem; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1rem; transition: 0.2s; }
+    .option:hover:not(:disabled) { border-color: var(--primary); }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-weight: bold; margin-bottom: 0.5rem; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); box-sizing: border-box; }
+    hr { border: 0; height: 1px; background: var(--border); margin: 2rem 0; }
+    .badge { padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; color: #fff; }
+    .bucket-0 { background: #e74c3c; } .bucket-1 { background: #f39c12; } .bucket-2 { background: #3498db; } .bucket-3 { background: #27ae60; }
+    
+    /* Study Heatmap */
+    .heatmap-grid { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 1rem; }
+    .heat-box { width: 14px; height: 14px; border-radius: 2px; background: var(--heat-0); position: relative; }
+    .heat-box:hover::after { content: attr(data-title); position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; white-space: nowrap; z-index: 10; pointer-events: none; }
+    
+    /* Hotspot Wrapper */
+    #image-wrapper { position: relative; display: inline-block; max-width: 100%; margin-top: 1rem; }
+    #quiz-image { max-width: 100%; border-radius: 4px; display: block; }
+    .hotspot-marker { position: absolute; width: 24px; height: 24px; border-radius: 50%; transform: translate(-50%, -50%); border: 3px solid; display: none; z-index: 5; pointer-events: none; }
+
+    #flashcard-box { min-height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed var(--border); border-radius: 8px; cursor: pointer; user-select: none; touch-action: pan-y; padding: 2rem; text-align: center; margin-top: 1.5rem; position: relative; background: var(--card-bg); box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s; }
+    .flashcard-hint { font-size: 0.85rem; color: var(--subtext); margin-top: 1rem; }
+    .swipe-overlay { position: absolute; inset: 0; display: flex; justify-content: space-between; padding: 1rem; font-size: 2rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+    
+    .browse-item { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--border); transition: background 0.2s; }
+    .browse-item:hover { background: rgba(52, 152, 219, 0.1); }
+    .browse-checkbox { transform: scale(1.5); margin-top: 5px; cursor: pointer; }
+    .floating-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); padding: 1rem; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); z-index: 1000; }
+    
+    #learn-answer-box { margin-top: 1.5rem; padding: 1.5rem; border-radius: 8px; background: rgba(39, 174, 96, 0.1); border: 2px solid var(--correct); text-align: center; font-size: 1.3rem; font-weight: bold; color: var(--correct); }
+    .bank-checkbox { transform: scale(1.3); cursor: pointer; }
+    .select-card { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Forestry Study App</h1>
+  <nav>
+    <button id="nav-dashboard" class="active" onclick="switchView('dashboard')">Subjects</button>
+    <button id="nav-search" onclick="switchView('search')">Search</button>
+    <button id="nav-manage" onclick="switchView('manage')">Manage Data</button>
+    <button id="nav-help" onclick="switchView('help')">Manual</button>
+    <button onclick="toggleTheme()">🌓</button>
+  </nav>
+</header>
+
+<div class="container">
+  
+  <div id="dashboard-view" class="view active">
+    <h2>Mastery Analytics</h2>
+    <div class="card" style="display: flex; justify-content: center; height: 250px;">
+      <canvas id="mastery-chart"></canvas>
+    </div>
+    
+    <h2>Study Consistency (Last 60 Days)</h2>
+    <div class="card">
+      <div id="heatmap-container" class="heatmap-grid"></div>
+    </div>
+
+    <div class="card" style="border: 2px solid var(--primary); background: rgba(52, 152, 219, 0.05);">
+      <div class="header-row">
+        <div>
+          <h3 style="margin: 0;">🌐 Multi-Subject Mega Session</h3>
+          <div class="stats">Practice across multiple subjects simultaneously</div>
+        </div>
+        <div style="display: flex; gap: 5px;">
+          <button class="btn btn-outline" onclick="selectAllMultiSubjects(true)">All</button>
+          <button class="btn btn-outline" onclick="selectAllMultiSubjects(false)">None</button>
+        </div>
+      </div>
+      <div id="multi-subject-selector" style="display: flex; flex-wrap: wrap; gap: 15px; margin: 1rem 0;"></div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
+        <select id="multi-subject-mode" class="form-group" style="margin:0; padding: 0.4rem; max-width: 200px;">
+          <option value="learn">Learn Mode (Batched)</option>
+          <option value="mc">Standard (MC)</option>
+          <option value="flashcard">Flashcards</option>
+          <option value="timed">Timed Exam</option>
+        </select>
+        <button class="btn" style="background: #8e44ad;" onclick="startMultiSubjectSession()">Start Combined Session</button>
+      </div>
+    </div>
+
+    <h2>Your Subjects</h2>
+    <div id="subject-container"></div>
+  </div>
+
+  <div id="subject-view" class="view">
+    <button class="btn btn-outline" style="margin-bottom: 1rem;" onclick="switchView('dashboard')">← Back to Subjects</button>
+    <div class="header-row">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <h2 id="current-subject-title" style="margin: 0;">Subject</h2>
+        <button class="btn btn-outline btn-sm" onclick="renameCurrentSubject()" title="Rename Subject">✏️ Rename</button>
+      </div>
+      <div style="display: flex; gap: 5px;">
+        <button class="btn btn-outline" onclick="selectAllBanks(true)">Select All</button>
+        <button class="btn btn-outline" onclick="selectAllBanks(false)">Deselect All</button>
+      </div>
+    </div>
+
+    <div id="subject-overall-progress" class="card" style="margin-top: 0.75rem; padding: 1rem 1.5rem;"></div>
+
+    <div class="card" style="margin-top: 1rem; border: 2px solid var(--primary); background: rgba(52, 152, 219, 0.05);">
+      <div class="header-row">
+        <div>
+          <strong id="selected-bank-count">0</strong> banks selected
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-outline" onclick="openMultiBankBrowse()">🔍 Browse / Organize Selected</button>
+          <select id="multi-bank-study-mode" class="form-group" style="margin:0; padding: 0.4rem; width: auto;">
+            <option value="learn">Learn Mode (Batched)</option>
+            <option value="mc">Standard (MC)</option>
+            <option value="flashcard">Flashcards</option>
+            <option value="timed">Timed Exam</option>
+          </select>
+          <button class="btn" style="background:#8e44ad;" onclick="startMultiBankQuiz()">Start Selected Banks</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="bank-container" style="margin-top: 1rem;"></div>
+  </div>
+
+  <div id="browse-view" class="view">
+    <button class="btn btn-outline" style="margin-bottom: 1rem;" onclick="openSubject(currentSubjectKey)">← Back to Banks</button>
+    <div class="header-row">
+      <h2 id="browse-title" style="margin: 0;">Browse Bank</h2>
+      <div style="display: flex; gap: 5px;">
+        <button class="btn btn-outline" onclick="selectAll(true)">Select All Visible</button>
+        <button class="btn btn-outline" onclick="selectAll(false)">Deselect All</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 1rem; border: 2px solid var(--correct); background: rgba(39, 174, 96, 0.05);">
+      <div class="header-row" style="margin-bottom: 0.75rem;">
+        <h3 style="margin: 0; font-size: 1.1rem;">📂 Organize Selected Questions (<span id="org-selected-count">0</span> selected)</h3>
+        <span class="stats" style="margin: 0;">Tip: Hold <strong>Shift</strong> and click two checkboxes to select a range!</span>
+      </div>
+      
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px;">
+        <input type="text" id="browse-new-bank-name" placeholder="New Bank Name (e.g. L3 Data Model & Type)" style="flex: 2; min-width: 200px; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--card-bg); color: var(--text);">
+        <button class="btn" style="background: #27ae60;" onclick="transferSelectedQuestions('new', true)">✂️ Move to New Bank</button>
+        <button class="btn btn-outline" onclick="transferSelectedQuestions('new', false)">📋 Copy to New Bank</button>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+        <select id="browse-target-bank" style="flex: 2; min-width: 200px; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--card-bg); color: var(--text);"></select>
+        <button class="btn" style="background: #3498db;" onclick="transferSelectedQuestions('existing', true)">✂️ Move to Existing</button>
+        <button class="btn btn-outline" onclick="transferSelectedQuestions('existing', false)">📋 Copy to Existing</button>
+        <button class="btn" style="background: #e74c3c;" onclick="deleteSelectedQuestions()">🗑️️ Delete</button>
+      </div>
+      <p id="browse-msg-box" style="font-weight: bold; text-align: center; display: none; margin: 0.75rem 0 0 0;"></p>
+    </div>
+
+    <div class="form-group">
+      <input type="text" id="browse-filter-input" oninput="filterBrowseList()" placeholder="🔎 Filter questions in this view by keyword...">
+    </div>
+
+    <div class="card" id="browse-list-container" style="padding: 0; overflow: hidden;"></div>
+    
+    <div class="floating-bar">
+      <div><span id="selected-count" style="font-weight: bold;">0</span> Selected</div>
+      <div style="display: flex; gap: 10px;">
+        <select id="custom-study-mode" class="form-group" style="margin:0; padding: 0.4rem;">
+          <option value="learn">Learn Mode (Batched)</option>
+          <option value="mc">Standard (MC)</option>
+          <option value="flashcard">Flashcards</option>
+          <option value="timed">Timed Exam</option>
+        </select>
+        <button class="btn" style="background: #8e44ad;" onclick="startCustomQuiz()">Start Session</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="search-view" class="view">
+    <h2>Search Database</h2>
+    <div class="form-group"><input type="text" id="search-input" onkeyup="renderSearchResults()" placeholder="Search questions, concepts, or terms..."></div>
+    <div id="search-results-container"></div>
+  </div>
+
+  <div id="quiz-view" class="view">
+    <div class="header-row">
+      <button class="btn btn-outline" onclick="exitQuiz()">← Exit Session</button>
+      <div id="timer-display" style="font-weight: bold; font-size: 1.2rem; display: none; color: #e74c3c;">⏱️ 15s</div>
+      <div id="quiz-action-buttons" style="display: flex; gap: 5px; flex-wrap: wrap;">
+        <button id="speak-btn" class="btn btn-outline" onclick="manualSpeak()">🔊 Read</button>
+        <button id="flag-btn" class="btn btn-outline" onclick="toggleFlag()">🚩 Flag</button>
+        <button id="delete-quiz-q-btn" class="btn btn-outline" style="color: var(--incorrect); border-color: var(--incorrect);" onclick="deleteCurrentQuizQuestion()" title="Permanently delete this question">🗑️ Delete</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top: 1rem; overflow: hidden;">
+      <div class="header-row">
+        <span id="quiz-bank-title" style="color: var(--subtext); font-weight: bold;"></span>
+        <span id="bucket-badge" class="badge"></span>
+      </div>
+      
+      <div style="text-align: center;">
+        <div id="image-wrapper">
+          <img id="quiz-image" draggable="false">
+          <div id="hotspot-feedback" class="hotspot-marker"></div>
+        </div>
+      </div>
+      
+      <h2 id="question-text" style="line-height: 1.4; margin-top: 1rem;"></h2>
+      
+      <div id="hotspot-instruction" style="display:none; text-align:center; color: var(--subtext); margin-top: 10px; font-weight: bold;">👆 Tap the correct location on the image above.</div>
+
+      <div id="learn-answer-box" style="display: none;"></div>
+      <div id="options-container" class="options"></div>
+
+      <div id="flashcard-box" style="display: none;">
+        <h2 id="flashcard-text" style="margin: 0; line-height: 1.4;"></h2>
+        <div id="flashcard-answer" style="display: none; color: var(--correct); font-weight: bold; font-size: 1.2rem; margin-top: 1.5rem;"></div>
+        <div class="flashcard-hint" id="flashcard-instruction">Tap to flip</div>
+        <div class="swipe-overlay" id="swipe-indicators">
+          <span style="color: var(--incorrect);">❌</span>
+          <span style="color: var(--correct);">✅</span>
+        </div>
+      </div>
+
+      <div id="flashcard-controls" style="display: none; margin-top: 1rem; justify-content: space-between; gap: 10px;">
+        <button class="btn btn-incorrect" style="flex: 1;" onclick="handleFlashcardSwipe(false)">Incorrect (Swipe Left)</button>
+        <button class="btn btn-correct" style="flex: 1;" onclick="handleFlashcardSwipe(true)">Correct (Swipe Right)</button>
+      </div>
+
+      <button id="next-btn" class="btn" style="display: none; width: 100%; margin-top: 1.5rem; padding: 1rem;" onclick="nextQuestion()">Next Question</button>
+    </div>
+  </div>
+
+  <div id="help-view" class="view">
+    <h2>App User Manual & Reference</h2>
+    
+    <div class="card">
+      <h3>1. Study Modes</h3>
+      <ul style="margin:0; padding-left:20px; font-size:0.9rem; color:var(--subtext);">
+        <li><strong>Learn Mode (Batched):</strong> Teaches 3 concepts at a time, then immediately quizzes you on them before moving to the next batch.</li>
+        <li><strong>Standard Mode:</strong> Multiple choice with randomized option shuffling.</li>
+        <li><strong>Flashcard Mode:</strong> Tap to reveal answer. Swipe left (wrong) or right (correct).</li>
+        <li><strong>Timed Exam Mode:</strong> Standard mode enforced with a 15-second countdown timer.</li>
+        <li><strong>Audio Dictation:</strong> Click the "🔊 Read" button during any mode to have your device read the question and answer out loud.</li>
+        <li><strong>In-Quiz Deletion:</strong> Click the "🗑️ Delete" button in the top-right corner of any study mode to immediately delete an unneeded question and advance to the next one.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>2. Organizing Questions & Renaming Banks</h3>
+      <ul style="margin:0; padding-left:20px; font-size:0.9rem; color:var(--subtext);">
+        <li><strong>Rename or Delete Banks:</strong> Click the <strong>✏️</strong> or <strong>🗑️</strong> icon next to any bank name inside a subject.</li>
+        <li><strong>Split Bulk Banks into Lecture Banks:</strong> Click <strong>🔍 Browse</strong> on your bulk bank, check off the questions you want (hold <strong>Shift</strong> and click to select a range), type a new bank name in the green Organize box, and click <strong>✂️ Move to New Bank</strong> or <strong>📋 Copy to New Bank</strong>.</li>
+        <li><strong>Transfer Between Existing Banks:</strong> Select questions in Browse view, choose a destination bank in the dropdown, and click <strong>✂️ Move to Existing</strong> or <strong>📋 Copy to Existing</strong>.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>3. Multi-Lecture & Multi-Subject Study</h3>
+      <p style="font-size: 0.9rem; color: var(--subtext);">You can practice across multiple materials at once:</p>
+      <ul style="margin:0; padding-left:20px; font-size:0.9rem; color:var(--subtext);">
+        <li><strong>Multi-Bank (Within a Subject):</strong> In any subject view, check off the specific lectures/banks you want to combine, choose a mode, and click <strong>Start Selected Banks</strong>.</li>
+        <li><strong>Multi-Subject Mega Session:</strong> On the main Subjects dashboard, select the checkboxes for any subjects you want to combine (e.g. FOREC 345 + RenR 201), pick your mode, and start.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>4. Image Hotspot Quizzes (Touch-Targeting)</h3>
+      <p style="font-size: 0.9rem; color: var(--subtext);">Transform diagrams into interactive touch-quizzes. In your JSON payload, add a <code>hotspot</code> object containing the <code>x</code> percentage, <code>y</code> percentage, and a <code>radius</code>. The app will automatically hide text options and ask you to tap the image instead.</p>
+      <textarea readonly rows="4" style="width:100%; font-size:0.8rem; background:var(--bg); color:var(--text); padding:5px;">[
+  {
+    "q": "Identify the Pericycle layer in this cross-section.",
+    "image": "images/root.png",
+    "options": ["Pericycle", "X", "Y", "Z"],
+    "hotspot": {"x": 50, "y": 75, "radius": 12}
+  }
+]</textarea>
+    </div>
+
+    <div class="card">
+      <h3>5. Generating Questions via AI (JSON)</h3>
+      <p style="font-size: 0.9rem; color: var(--subtext);">Use this prompt when uploading lecture PDFs to the AI assistant:</p>
+      <textarea readonly rows="3" style="width:100%; font-size:0.8rem; background:var(--bg); color:var(--text); padding:5px;">Extract all key terms, definitions, and concepts to create a comprehensive practice bank. Generate a bulk JSON array using this format: [{"q": "Question?", "image": "images/file.png", "options": ["Correct", "Wrong1", "Wrong2", "Wrong3"]}]. Correct option must be first.</textarea>
+    </div>
+
+    <div class="card">
+      <h3>6. Excel / CSV Importer Guidelines</h3>
+      <p style="font-size: 0.9rem;">Set up an Excel spreadsheet with 5 columns in this exact order (do <strong>not</strong> include header text rows):</p>
+      <ol style="margin:0; padding-left:20px; font-size:0.9rem; color:var(--subtext);">
+        <li>Question Text</li>
+        <li>Correct Answer</li>
+        <li>Wrong Option 1</li>
+        <li>Wrong Option 2</li>
+        <li>Wrong Option 3</li>
+      </ol>
+      <p style="font-size: 0.9rem; margin-top: 10px;">Save as a <strong>.csv</strong> file and upload it in the <strong>Manage Data</strong> tab.</p>
+    </div>
+  </div>
+
+  <div id="manage-view" class="view">
+    <h2>Manage Database</h2>
+    <button class="btn" onclick="exportData()" style="background: #e67e22; margin-bottom: 1rem; width: 100%;">⬇️ Backup / Export Entire Database</button>
+
+    <div class="card">
+      <h3>Add New Subject / Bank</h3>
+      <div class="form-group" style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <input type="text" id="new-subj-name" style="flex: 2; min-width: 150px;" placeholder="New Subject (e.g. STAT 151)">
+        <button class="btn" style="flex: 1;" onclick="addSubject()">Add Subject</button>
+      </div>
+      <div class="form-group" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+        <select id="add-bank-subj-select" style="flex: 1; min-width: 150px;"></select>
+        <input type="text" id="new-bank-name" style="flex: 2; min-width: 150px;" placeholder="New Bank (e.g. Midterm 1)">
+        <button class="btn" style="flex: 1;" onclick="addBank()">Add Bank</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Import & Modify Questions</h3>
+      <div class="form-group" style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <div style="flex: 1; min-width: 150px;"><label>Target Subject</label><select id="manage-subject-select" onchange="updateBankDropdown()"></select></div>
+        <div style="flex: 1; min-width: 150px;"><label>Target Bank</label><select id="manage-bank-select"></select></div>
+      </div>
+      <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+        <button class="btn btn-outline btn-sm" onclick="renameBankFromManage()">✏️ Rename Selected Bank</button>
+        <button class="btn btn-outline btn-sm" style="color: var(--incorrect); border-color: var(--incorrect);" onclick="deleteBankFromManage()">🗑️ Delete Selected Bank</button>
+      </div>
+
+      <hr>
+      <h4>➕ Add Single Question Manually</h4>
+      <div class="form-group"><input type="text" id="man-q" placeholder="Question Text..."></div>
+      <div class="form-group"><input type="text" id="man-img" placeholder="Image File Path (Optional, e.g. images/leaf.png)"></div>
+      <div class="form-group"><input type="text" id="man-opt1" placeholder="Correct Answer" style="border-left: 3px solid var(--correct);"></div>
+      <div class="form-group"><input type="text" id="man-opt2" placeholder="Wrong Option 1"></div>
+      <div class="form-group"><input type="text" id="man-opt3" placeholder="Wrong Option 2"></div>
+      <div class="form-group"><input type="text" id="man-opt4" placeholder="Wrong Option 3"></div>
+      <button class="btn btn-outline" onclick="addSingleQuestion()" style="width: 100%;">Save Question</button>
+
+      <hr>
+      <h4>📥 Bulk Import (CSV or JSON)</h4>
+      <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 1rem;">
+        <input type="file" id="csv-file" accept=".csv" style="flex: 2;">
+        <button class="btn" onclick="importCSV()" style="flex: 1; background: #27ae60;">Import CSV</button>
+      </div>
+      <div class="form-group"><textarea id="bulk-json" rows="4" placeholder='[ {"q": "Question?", "options": ["Correct", "Wrong1", "Wrong2", "Wrong3"]} ]'></textarea></div>
+      <button class="btn" onclick="bulkImport()" style="width: 100%; background: #8e44ad;">Import JSON Block</button>
+      <p id="msg-box" style="font-weight: bold; text-align: center; display: none; margin-top: 0.5rem;"></p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let appData = JSON.parse(localStorage.getItem('studyAppData')) || {};
+  appData.activity = appData.activity || {}; 
+  
+  let currentSubjectKey = null, currentBankKey = null, currentStudyMode = 'mc';
+  let activeQuestions = [], currentQuestionIndex = 0, currentCorrectOptionText = "";
+  let timerInterval = null, timeLeft = 0, chartInstance = null;
+  let browseSelection = new Set();
+  let browseItems = [];
+  let browseModeBanks = [];
+  let lastCheckedBrowseIndex = null;
+  let selectedBanksForQuiz = new Set();
+  let quizOriginView = 'dashboard';
+  
+  let learnBatchSize = 3;
+  let learnBatchStartIndex = 0;
+  let learnPhase = 'teach';
+  
+  let startX = 0, currentX = 0, isFlipped = false;
+  const fcBox = document.getElementById('flashcard-box');
+  const quizImage = document.getElementById('quiz-image');
+
+  function cleanCiteTags(str) {
+    return str ? str.replace(/\s*\[\s*c[i]te:[^\]]+\]/gi, '').trim() : str;
+  }
+
+  function scrubDatabase() {
+    for (const [key, subject] of Object.entries(appData)) {
+      if (key === 'activity' || !subject.banks) continue;
+      for (const bKey in subject.banks) {
+        subject.banks[bKey].questions.forEach(q => {
+          q.q = cleanCiteTags(q.q);
+          q.options = q.options.map(opt => cleanCiteTags(opt));
+        });
+      }
+    }
+    saveData();
+  }
+
+  function initApp() {
+    if(localStorage.getItem('theme')) document.documentElement.setAttribute('data-theme', localStorage.getItem('theme'));
+    scrubDatabase();
+    renderDashboard();
+  }
+
+  function toggleTheme() {
+    const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    renderDashboard();
+  }
+
+  function saveData() { localStorage.setItem('studyAppData', JSON.stringify(appData)); }
+
+  function switchView(viewId) {
+    clearInterval(timerInterval);
+    window.speechSynthesis.cancel();
+    
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+    
+    const floatBar = document.querySelector('.floating-bar');
+    if(floatBar) floatBar.style.display = (viewId === 'browse') ? 'flex' : 'none';
+
+    document.getElementById(viewId + '-view').classList.add('active');
+    
+    if(viewId === 'dashboard') { document.getElementById('nav-dashboard').classList.add('active'); renderDashboard(); }
+    if(viewId === 'search') { document.getElementById('nav-search').classList.add('active'); renderSearchResults(); }
+    if(viewId === 'manage') { document.getElementById('nav-manage').classList.add('active'); populateManageSelects(); }
+    if(viewId === 'help') { document.getElementById('nav-help').classList.add('active'); }
+  }
+
+  function renderHeatmap() {
+    const container = document.getElementById('heatmap-container');
+    container.innerHTML = '';
+    const today = new Date();
+    
+    for (let i = 59; i >= 0; i--) {
+      let d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const count = appData.activity[dateStr] || 0;
+      
+      let heatClass = 'heat-0';
+      if (count > 0 && count <= 10) heatClass = 'heat-1';
+      else if (count > 10 && count <= 30) heatClass = 'heat-2';
+      else if (count > 30 && count <= 60) heatClass = 'heat-3';
+      else if (count > 60) heatClass = 'heat-4';
+
+      const box = document.createElement('div');
+      box.className = `heat-box ${heatClass}`;
+      box.setAttribute('data-title', `${count} reviews on ${dateStr}`);
+      container.appendChild(box);
+    }
+  }
+
+  function renderDashboard() {
+    const container = document.getElementById('subject-container');
+    const multiSubjContainer = document.getElementById('multi-subject-selector');
+    container.innerHTML = '';
+    multiSubjContainer.innerHTML = '';
+    let b0=0, b1=0, b2=0, b3=0;
+
+    for (const [key, subject] of Object.entries(appData)) {
+      if(key === 'activity') continue; 
+      let sb0=0, sb1=0, sb2=0, sb3=0, totalQ=0;
+      if(subject.banks) {
+        for (const bKey in subject.banks) {
+          subject.banks[bKey].questions.forEach(q => {
+            totalQ++;
+            if(q.bucket === 0) { b0++; sb0++; }
+            else if(q.bucket === 1) { b1++; sb1++; }
+            else if(q.bucket === 2) { b2++; sb2++; }
+            else if(q.bucket === 3) { b3++; sb3++; }
+          });
+        }
+      }
+
+      const sItem = document.createElement('label');
+      sItem.style.display = 'flex';
+      sItem.style.alignItems = 'center';
+      sItem.style.gap = '6px';
+      sItem.style.cursor = 'pointer';
+      sItem.innerHTML = `<input type="checkbox" class="multi-subj-check bank-checkbox" value="${key}"> <strong>${subject.name}</strong> (${totalQ} Qs)`;
+      multiSubjContainer.appendChild(sItem);
+
+      const card = document.createElement('div');
+      card.className = 'card card-hover';
+      card.onclick = () => openSubject(key);
+      card.innerHTML = `
+        <h3 style="margin: 0; color: var(--text);">${subject.name}</h3>
+        <div class="progress-bar">
+          <div style="width: ${totalQ===0?0:(sb3/totalQ)*100}%; background: #27ae60;"></div>
+          <div style="width: ${totalQ===0?0:(sb2/totalQ)*100}%; background: #3498db;"></div>
+          <div style="width: ${totalQ===0?0:(sb1/totalQ)*100}%; background: #f39c12;"></div>
+          <div style="width: ${totalQ===0?0:(sb0/totalQ)*100}%; background: #e74c3c;"></div>
+        </div>
+        <div class="stats">${totalQ} Total Questions | Mastered: ${sb3} | Review: ${sb2} | Learning: ${sb1} | New: ${sb0}</div>
+      `;
+      container.appendChild(card);
+    }
+
+    renderHeatmap();
+
+    const ctx = document.getElementById('mastery-chart');
+    if(chartInstance) chartInstance.destroy();
+    let isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    Chart.defaults.color = isDark ? '#e0e0e0' : '#333';
+    chartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Mastered', 'Review', 'Learning', 'New/Struggling'],
+        datasets: [{ data: [b3, b2, b1, b0], backgroundColor: ['#27ae60', '#3498db', '#f39c12', '#e74c3c'], borderColor: isDark ? '#1e1e1e' : '#fff', borderWidth: 2 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+    });
+  }
+
+  function selectAllMultiSubjects(checked) {
+    document.querySelectorAll('.multi-subj-check').forEach(cb => cb.checked = checked);
+  }
+
+  function startMultiSubjectSession() {
+    const selectedSubjKeys = Array.from(document.querySelectorAll('.multi-subj-check:checked')).map(cb => cb.value);
+    if(selectedSubjKeys.length === 0) {
+      alert("Please check at least one subject.");
+      return;
+    }
+
+    let combinedQuestions = [];
+    selectedSubjKeys.forEach(sKey => {
+      const subject = appData[sKey];
+      if(subject && subject.banks) {
+        for(const bKey in subject.banks) {
+          combinedQuestions.push(...subject.banks[bKey].questions);
+        }
+      }
+    });
+
+    if(combinedQuestions.length === 0) {
+      alert("Selected subjects do not contain any questions.");
+      return;
+    }
+
+    const mode = document.getElementById('multi-subject-mode').value;
+    activeQuestions = [...combinedQuestions].sort((a, b) => a.bucket - b.bucket);
+    currentStudyMode = mode;
+    currentQuestionIndex = 0;
+    quizOriginView = 'dashboard';
+
+    if (mode === 'learn') {
+      learnBatchSize = 3;
+      learnBatchStartIndex = 0;
+      learnPhase = 'teach';
+    }
+
+    switchView('quiz');
+    loadQuestion();
+  }
+
+  function openSubject(subjKey) {
+    currentSubjectKey = subjKey;
+    selectedBanksForQuiz.clear();
+    updateSelectedBankDisplay();
+
+    document.getElementById('current-subject-title').innerText = appData[subjKey].name;
+    const container = document.getElementById('bank-container');
+    container.innerHTML = '';
+
+    let subjB0 = 0, subjB1 = 0, subjB2 = 0, subjB3 = 0, subjTotal = 0;
+
+    for (const [bKey, bank] of Object.entries(appData[subjKey].banks)) {
+      const qCount = bank.questions.length;
+      let bb0 = 0, bb1 = 0, bb2 = 0, bb3 = 0;
+      bank.questions.forEach(q => {
+        subjTotal++;
+        if (q.bucket === 0) { bb0++; subjB0++; }
+        else if (q.bucket === 1) { bb1++; subjB1++; }
+        else if (q.bucket === 2) { bb2++; subjB2++; }
+        else if (q.bucket === 3) { bb3++; subjB3++; }
+      });
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="header-row">
+          <div class="select-card">
+            <input type="checkbox" class="bank-checkbox bank-select-cb" data-bkey="${bKey}" onchange="handleBankSelect(this)" ${qCount===0?'disabled':''}>
+            <h3 style="margin: 0;">${bank.name}</h3>
+            <button class="btn btn-outline btn-sm" onclick="renameBank('${subjKey}', '${bKey}')" title="Rename Bank">✏️</button>
+            <button class="btn btn-outline btn-sm" style="color: var(--incorrect); border-color: var(--incorrect);" onclick="deleteBank('${subjKey}', '${bKey}')" title="Delete Bank">🗑️</button>
+          </div>
+          <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+            <button class="btn btn-outline" onclick="openBrowse('${subjKey}', ['${bKey}'])" ${qCount===0?'disabled':''}>🔍 Browse</button>
+            <button class="btn" style="background:#27ae60;" onclick="startQuiz('${subjKey}', '${bKey}', 'learn')" ${qCount===0?'disabled':''}>Learn</button>
+            <button class="btn" style="background:#3498db;" onclick="startQuiz('${subjKey}', '${bKey}', 'mc')" ${qCount===0?'disabled':''}>Standard</button>
+            <button class="btn" style="background:#8e44ad;" onclick="startQuiz('${subjKey}', '${bKey}', 'flashcard')" ${qCount===0?'disabled':''}>Cards</button>
+            <button class="btn" style="background:#e74c3c;" onclick="startQuiz('${subjKey}', '${bKey}', 'timed')" ${qCount===0?'disabled':''}>Exam</button>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div style="width: ${qCount===0?0:(bb3/qCount)*100}%; background: #27ae60;" title="Mastered: ${bb3}"></div>
+          <div style="width: ${qCount===0?0:(bb2/qCount)*100}%; background: #3498db;" title="Review: ${bb2}"></div>
+          <div style="width: ${qCount===0?0:(bb1/qCount)*100}%; background: #f39c12;" title="Learning: ${bb1}"></div>
+          <div style="width: ${qCount===0?0:(bb0/qCount)*100}%; background: #e74c3c;" title="New/Struggling: ${bb0}"></div>
+        </div>
+        <div class="stats">${qCount} Questions | Mastered: ${bb3} (${qCount===0?0:Math.round((bb3/qCount)*100)}%) | Review: ${bb2} | Learning: ${bb1} | New: ${bb0}</div>
+      `;
+      container.appendChild(card);
+    }
+
+    const subjProgressBox = document.getElementById('subject-overall-progress');
+    if (subjProgressBox) {
+      subjProgressBox.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 0.95rem;">
+          <span>Overall Subject Mastery</span>
+          <span>${subjTotal===0?0:Math.round((subjB3/subjTotal)*100)}% Mastered (${subjB3}/${subjTotal})</span>
+        </div>
+        <div class="progress-bar">
+          <div style="width: ${subjTotal===0?0:(subjB3/subjTotal)*100}%; background: #27ae60;"></div>
+          <div style="width: ${subjTotal===0?0:(subjB2/subjTotal)*100}%; background: #3498db;"></div>
+          <div style="width: ${subjTotal===0?0:(subjB1/subjTotal)*100}%; background: #f39c12;"></div>
+          <div style="width: ${subjTotal===0?0:(subjB0/subjTotal)*100}%; background: #e74c3c;"></div>
+        </div>
+        <div class="stats">Mastered: ${subjB3} | Review: ${subjB2} | Learning: ${subjB1} | New/Struggling: ${subjB0}</div>
+      `;
+    }
+
+    switchView('subject');
+  }
+
+  function renameCurrentSubject() {
+    if (!currentSubjectKey || !appData[currentSubjectKey]) return;
+    const oldName = appData[currentSubjectKey].name;
+    const newName = prompt("Enter new name for this Subject:", oldName);
+    if (newName && newName.trim() !== "") {
+      appData[currentSubjectKey].name = newName.trim();
+      saveData();
+      openSubject(currentSubjectKey);
+    }
+  }
+
+  function renameBank(subjKey, bKey) {
+    const bank = appData[subjKey]?.banks?.[bKey];
+    if (!bank) return;
+    const newName = prompt("Enter a new name for this bank:", bank.name);
+    if (newName && newName.trim() !== "") {
+      bank.name = newName.trim();
+      saveData();
+      openSubject(subjKey);
+    }
+  }
+
+  function deleteBank(subjKey, bKey) {
+    const subject = appData[subjKey];
+    if (!subject || !subject.banks[bKey]) return;
+    const bankName = subject.banks[bKey].name;
+    const qCount = subject.banks[bKey].questions.length;
+    if (!confirm(`Are you sure you want to delete the bank "${bankName}" (${qCount} questions)? This cannot be undone.`)) return;
+    
+    delete subject.banks[bKey];
+    if (Object.keys(subject.banks).length === 0) {
+      subject.banks["default"] = { name: "General Concepts", questions: [] };
+    }
+    saveData();
+    openSubject(subjKey);
+  }
+
+  function renameBankFromManage() {
+    const s = document.getElementById('manage-subject-select').value;
+    const b = document.getElementById('manage-bank-select').value;
+    if (!s || !b) return;
+    const bank = appData[s]?.banks?.[b];
+    const newName = prompt("Enter a new name for this bank:", bank.name);
+    if (newName && newName.trim() !== "") {
+      bank.name = newName.trim();
+      saveData();
+      updateBankDropdown();
+      document.getElementById('manage-bank-select').value = b;
+      showMsg("Bank renamed successfully!");
+    }
+  }
+
+  function deleteBankFromManage() {
+    const s = document.getElementById('manage-subject-select').value;
+    const b = document.getElementById('manage-bank-select').value;
+    if (!s || !b) return;
+    const subject = appData[s];
+    const bankName = subject.banks[b].name;
+    if (!confirm(`Are you sure you want to delete "${bankName}" (${subject.banks[b].questions.length} questions)?`)) return;
+    delete subject.banks[b];
+    if (Object.keys(subject.banks).length === 0) {
+      subject.banks["default"] = { name: "General Concepts", questions: [] };
+    }
+    saveData();
+    updateBankDropdown();
+    showMsg("Bank deleted.");
+  }
+
+  function handleBankSelect(checkbox) {
+    const bKey = checkbox.getAttribute('data-bkey');
+    if(checkbox.checked) selectedBanksForQuiz.add(bKey);
+    else selectedBanksForQuiz.delete(bKey);
+    updateSelectedBankDisplay();
+  }
+
+  function selectAllBanks(check) {
+    document.querySelectorAll('.bank-select-cb:not(:disabled)').forEach(cb => {
+      cb.checked = check;
+      const bKey = cb.getAttribute('data-bkey');
+      if(check) selectedBanksForQuiz.add(bKey);
+      else selectedBanksForQuiz.delete(bKey);
+    });
+    updateSelectedBankDisplay();
+  }
+
+  function updateSelectedBankDisplay() {
+    document.getElementById('selected-bank-count').innerText = selectedBanksForQuiz.size;
+  }
+
+  function openMultiBankBrowse() {
+    if(selectedBanksForQuiz.size === 0) {
+      alert("Please select at least one lecture bank using the checkboxes.");
+      return;
+    }
+    openBrowse(currentSubjectKey, Array.from(selectedBanksForQuiz));
+  }
+
+  function startMultiBankQuiz() {
+    if(selectedBanksForQuiz.size === 0) {
+      alert("Please select at least one lecture bank using the checkboxes.");
+      return;
+    }
+
+    let combined = [];
+    selectedBanksForQuiz.forEach(bKey => {
+      combined.push(...appData[currentSubjectKey].banks[bKey].questions);
+    });
+
+    const mode = document.getElementById('multi-bank-study-mode').value;
+    activeQuestions = [...combined].sort((a, b) => a.bucket - b.bucket);
+    currentStudyMode = mode;
+    currentQuestionIndex = 0;
+    quizOriginView = 'subject';
+
+    if (mode === 'learn') {
+      learnBatchSize = 3;
+      learnBatchStartIndex = 0;
+      learnPhase = 'teach';
+    }
+
+    switchView('quiz');
+    loadQuestion();
+  }
+
+  function openBrowse(subjKey, bKeysInput) {
+    currentSubjectKey = subjKey;
+    const bKeys = Array.isArray(bKeysInput) ? bKeysInput : [bKeysInput];
+    browseModeBanks = bKeys.filter(k => appData[subjKey].banks[k]);
+    if (browseModeBanks.length === 0) {
+      openSubject(subjKey);
+      return;
+    }
+    currentBankKey = browseModeBanks[0];
+
+    browseSelection.clear();
+    browseItems = [];
+    lastCheckedBrowseIndex = null;
+    document.getElementById('browse-filter-input').value = '';
+    updateSelectionCount();
+    
+    if (browseModeBanks.length === 1) {
+      document.getElementById('browse-title').innerText = `Browsing: ${appData[subjKey].banks[browseModeBanks[0]].name}`;
+    } else {
+      document.getElementById('browse-title').innerText = `Browsing: ${browseModeBanks.length} Combined Banks`;
+    }
+
+    // Populate target bank dropdown in Organize bar
+    const targetSelect = document.getElementById('browse-target-bank');
+    targetSelect.innerHTML = '';
+    for (const [k, bObj] of Object.entries(appData[subjKey].banks)) {
+      if (browseModeBanks.length === 1 && k === browseModeBanks[0]) continue;
+      targetSelect.add(new Option(`${bObj.name} (${bObj.questions.length} Qs)`, k));
+    }
+    if (targetSelect.options.length === 0) {
+      targetSelect.add(new Option("-- No other existing banks yet --", ""));
+    }
+
+    const container = document.getElementById('browse-list-container');
+    container.innerHTML = '';
+
+    browseModeBanks.forEach(bKey => {
+      const bankName = appData[subjKey].banks[bKey].name;
+      appData[subjKey].banks[bKey].questions.forEach((q, qIdx) => {
+        const globalIdx = browseItems.length;
+        browseItems.push({ bKey, qIdx, q });
+
+        const item = document.createElement('div');
+        item.className = 'browse-item';
+        item.setAttribute('data-global-idx', globalIdx);
+        const bankTag = browseModeBanks.length > 1 ? `<span class="badge" style="background: var(--nav-bg); margin-right: 6px;">${bankName}</span>` : '';
+        item.innerHTML = `
+          <input type="checkbox" class="browse-checkbox" data-index="${globalIdx}" onclick="handleSelect(event, this)">
+          <div style="flex: 1;">
+            <div style="font-weight: bold; margin-bottom: 5px;"><span style="color: var(--subtext); margin-right: 6px;">#${globalIdx + 1}</span>${bankTag}${q.q}</div>
+            <div style="color: var(--correct); font-size: 0.9rem;">Ans: ${q.options[0]}</div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    });
+
+    switchView('browse');
+    triggerMathRender();
+  }
+
+  function filterBrowseList() {
+    const query = document.getElementById('browse-filter-input').value.toLowerCase().trim();
+    const items = document.querySelectorAll('#browse-list-container .browse-item');
+    items.forEach(item => {
+      const idx = parseInt(item.getAttribute('data-global-idx'));
+      const qObj = browseItems[idx].q;
+      const matches = !query || qObj.q.toLowerCase().includes(query) || qObj.options.some(o => o.toLowerCase().includes(query));
+      item.style.display = matches ? 'flex' : 'none';
+    });
+  }
+
+  function handleSelect(event, checkbox) {
+    const idx = parseInt(checkbox.getAttribute('data-index'));
+    
+    // Support Shift-Click to select or deselect a range of visible items
+    if (event && event.shiftKey && lastCheckedBrowseIndex !== null && lastCheckedBrowseIndex !== idx) {
+      const start = Math.min(lastCheckedBrowseIndex, idx);
+      const end = Math.max(lastCheckedBrowseIndex, idx);
+      const shouldCheck = checkbox.checked;
+      const allCheckboxes = document.querySelectorAll('.browse-checkbox');
+      for (let i = start; i <= end; i++) {
+        const cb = allCheckboxes[i];
+        const parentItem = cb.closest('.browse-item');
+        if (parentItem && parentItem.style.display !== 'none') {
+          cb.checked = shouldCheck;
+          if (shouldCheck) browseSelection.add(i);
+          else browseSelection.delete(i);
+        }
+      }
+    } else {
+      if (checkbox.checked) browseSelection.add(idx);
+      else browseSelection.delete(idx);
+    }
+    
+    lastCheckedBrowseIndex = idx;
+    updateSelectionCount();
+  }
+
+  function selectAll(check) {
+    const items = document.querySelectorAll('#browse-list-container .browse-item');
+    items.forEach(item => {
+      if (check && item.style.display === 'none') return; // Only select visible items when filtering
+      const box = item.querySelector('.browse-checkbox');
+      box.checked = check;
+      const idx = parseInt(box.getAttribute('data-index'));
+      if(check) browseSelection.add(idx); else browseSelection.delete(idx);
+    });
+    updateSelectionCount();
+  }
+
+  function updateSelectionCount() {
+    document.getElementById('selected-count').innerText = browseSelection.size;
+    const orgCount = document.getElementById('org-selected-count');
+    if (orgCount) orgCount.innerText = browseSelection.size;
+  }
+
+  function showBrowseMsg(text, isError = false) {
+    const msg = document.getElementById('browse-msg-box');
+    msg.innerText = text;
+    msg.style.color = isError ? 'var(--incorrect)' : 'var(--correct)';
+    msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; }, 4000);
+  }
+
+  function transferSelectedQuestions(targetType, isMove) {
+    if (browseSelection.size === 0) {
+      return showBrowseMsg("Please select at least one question first.", true);
+    }
+
+    let destBankKey = null;
+    if (targetType === 'new') {
+      const newName = document.getElementById('browse-new-bank-name').value.trim();
+      if (!newName) {
+        return showBrowseMsg("Please enter a name for the new bank.", true);
+      }
+      destBankKey = newName.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
+      appData[currentSubjectKey].banks[destBankKey] = { name: newName, questions: [] };
+      document.getElementById('browse-new-bank-name').value = '';
+    } else {
+      destBankKey = document.getElementById('browse-target-bank').value;
+      if (!destBankKey || !appData[currentSubjectKey].banks[destBankKey]) {
+        return showBrowseMsg("Please select a valid existing target bank.", true);
+      }
+    }
+
+    const sortedSelectedIndices = Array.from(browseSelection).sort((a, b) => a - b);
+    let transferredCount = 0;
+
+    // Add to destination bank
+    sortedSelectedIndices.forEach(globalIdx => {
+      const item = browseItems[globalIdx];
+      if (!item) return;
+      if (isMove && item.bKey === destBankKey) return; // Skip moving to same bank
+      const qClone = JSON.parse(JSON.stringify(item.q));
+      appData[currentSubjectKey].banks[destBankKey].questions.push(qClone);
+      transferredCount++;
+    });
+
+    // If Move, remove from source banks in reverse order so indices stay valid
+    if (isMove) {
+      const reverseIndices = [...sortedSelectedIndices].sort((a, b) => b - a);
+      reverseIndices.forEach(globalIdx => {
+        const item = browseItems[globalIdx];
+        if (!item || item.bKey === destBankKey) return;
+        appData[currentSubjectKey].banks[item.bKey].questions.splice(item.qIdx, 1);
+      });
+    }
+
+    saveData();
+    const destName = appData[currentSubjectKey].banks[destBankKey].name;
+    openBrowse(currentSubjectKey, browseModeBanks);
+    showBrowseMsg(`${isMove ? 'Moved' : 'Copied'} ${transferredCount} question(s) to "${destName}"!`);
+  }
+
+  function deleteSelectedQuestions() {
+    if (browseSelection.size === 0) {
+      return showBrowseMsg("Please select at least one question to delete.", true);
+    }
+    if (!confirm(`Are you sure you want to permanently delete ${browseSelection.size} selected question(s)?`)) return;
+
+    const reverseIndices = Array.from(browseSelection).sort((a, b) => b - a);
+    reverseIndices.forEach(globalIdx => {
+      const item = browseItems[globalIdx];
+      if (item) {
+        appData[currentSubjectKey].banks[item.bKey].questions.splice(item.qIdx, 1);
+      }
+    });
+
+    saveData();
+    const count = reverseIndices.length;
+    openBrowse(currentSubjectKey, browseModeBanks);
+    showBrowseMsg(`Deleted ${count} question(s).`);
+  }
+
+  function startCustomQuiz() {
+    if(browseSelection.size === 0) { alert("Please select at least one question."); return; }
+    const mode = document.getElementById('custom-study-mode').value;
+    activeQuestions = Array.from(browseSelection).map(idx => browseItems[idx].q).sort((a, b) => a.bucket - b.bucket);
+    
+    currentStudyMode = mode; currentQuestionIndex = 0;
+    quizOriginView = 'browse';
+    
+    if (mode === 'learn') { learnBatchSize = 3; learnBatchStartIndex = 0; learnPhase = 'teach'; }
+    switchView('quiz'); loadQuestion();
+  }
+
+  function startQuiz(subjKey, bKey, mode) {
+    currentSubjectKey = subjKey; currentBankKey = bKey; currentStudyMode = mode;
+    activeQuestions = [...appData[subjKey].banks[bKey].questions].sort((a, b) => a.bucket - b.bucket);
+    currentQuestionIndex = 0;
+    quizOriginView = 'subject';
+    
+    if (mode === 'learn') { learnBatchSize = 3; learnBatchStartIndex = 0; learnPhase = 'teach'; }
+    switchView('quiz'); loadQuestion();
+  }
+
+  function loadQuestion() {
+    clearInterval(timerInterval);
+    window.speechSynthesis.cancel();
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('hotspot-feedback').style.display = 'none';
+    document.getElementById('quiz-action-buttons').style.display = 'flex';
+    document.getElementById('bucket-badge').style.display = 'inline-block';
+    
+    const qData = activeQuestions[currentQuestionIndex];
+    currentCorrectOptionText = qData.options[0]; 
+    
+    if(qData.image) { quizImage.src = qData.image; document.getElementById('image-wrapper').style.display = 'inline-block'; quizImage.style.display = 'block'; } 
+    else { document.getElementById('image-wrapper').style.display = 'none'; quizImage.style.display = 'none'; }
+
+    const badge = document.getElementById('bucket-badge');
+    badge.className = 'badge bucket-' + qData.bucket;
+    badge.innerText = ["New/Struggling", "Learning", "Review", "Mastered"][qData.bucket];
+    
+    const flagBtn = document.getElementById('flag-btn');
+    flagBtn.innerText = qData.flagged ? "🚩 Unflag" : "⚐ Flag";
+    flagBtn.style.color = qData.flagged ? "#fff" : "var(--primary)";
+    flagBtn.style.background = qData.flagged ? "#e74c3c" : "transparent";
+
+    const mcContainer = document.getElementById('options-container');
+    const qText = document.getElementById('question-text');
+    const fcControls = document.getElementById('flashcard-controls');
+    const learnBox = document.getElementById('learn-answer-box');
+    const hotInst = document.getElementById('hotspot-instruction');
+    
+    document.getElementById('timer-display').style.display = 'none';
+    hotInst.style.display = 'none';
+    quizImage.style.cursor = 'default';
+    quizImage.onclick = null;
+
+    const isHotspotQuiz = (qData.hotspot && currentStudyMode !== 'learn' && currentStudyMode !== 'flashcard');
+
+    if(currentStudyMode === 'learn') {
+      if (learnPhase === 'teach') {
+        document.getElementById('quiz-bank-title').innerText = `Learn Mode - Study Phase (Batch ${Math.floor(learnBatchStartIndex/learnBatchSize) + 1})`;
+        mcContainer.style.display = 'none'; fcBox.style.display = 'none'; fcControls.style.display = 'none';
+        qText.style.display = 'block'; qText.innerText = qData.q;
+        learnBox.style.display = 'block'; learnBox.innerText = currentCorrectOptionText;
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.style.display = 'block'; nextBtn.innerText = "Next Concept";
+      } else if (learnPhase === 'quiz') {
+        document.getElementById('quiz-bank-title').innerText = `Learn Mode - Recall Quiz (Batch ${Math.floor(learnBatchStartIndex/learnBatchSize) + 1})`;
+        fcBox.style.display = 'none'; fcControls.style.display = 'none'; learnBox.style.display = 'none';
+        qText.style.display = 'block'; qText.innerText = qData.q;
+        
+        if(isHotspotQuiz) {
+            setupHotspotInteraction(qData);
+        } else {
+            mcContainer.style.display = 'grid';
+            let shuffledOptions = [...qData.options];
+            for (let i = shuffledOptions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]]; }
+            mcContainer.innerHTML = '';
+            shuffledOptions.forEach(optText => {
+              const btn = document.createElement('button');
+              btn.className = 'option'; btn.innerText = optText;
+              btn.onclick = () => checkAnswer(btn, optText, qData);
+              mcContainer.appendChild(btn);
+            });
+        }
+      }
+    } else if(currentStudyMode === 'flashcard') {
+      document.getElementById('quiz-bank-title').innerText = `Flashcards`;
+      mcContainer.style.display = 'none'; qText.style.display = 'none'; learnBox.style.display = 'none';
+      fcBox.style.display = 'flex'; fcControls.style.display = 'none';
+      document.getElementById('flashcard-text').innerText = qData.q;
+      document.getElementById('flashcard-answer').innerText = currentCorrectOptionText;
+      document.getElementById('flashcard-answer').style.display = 'none';
+      document.getElementById('flashcard-instruction').innerText = "Tap to flip";
+      isFlipped = false; fcBox.style.transform = `translateX(0px) rotate(0deg)`; document.getElementById('swipe-indicators').style.opacity = 0;
+    } else {
+      document.getElementById('quiz-bank-title').innerText = currentStudyMode === 'timed' ? `Timed Exam` : `Standard Quiz`;
+      fcBox.style.display = 'none'; fcControls.style.display = 'none'; learnBox.style.display = 'none';
+      qText.style.display = 'block'; qText.innerText = qData.q;
+      
+      if(isHotspotQuiz) {
+          setupHotspotInteraction(qData);
+      } else {
+          mcContainer.style.display = 'grid';
+          let shuffledOptions = [...qData.options];
+          for (let i = shuffledOptions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]]; }
+          mcContainer.innerHTML = '';
+          shuffledOptions.forEach(optText => {
+            const btn = document.createElement('button'); btn.className = 'option'; btn.innerText = optText;
+            btn.onclick = () => checkAnswer(btn, optText, qData); mcContainer.appendChild(btn);
+          });
+      }
+
+      if(currentStudyMode === 'timed') {
+        timeLeft = 15; document.getElementById('timer-display').style.display = 'block'; document.getElementById('timer-display').innerText = `⏱ ${timeLeft}s`;
+        timerInterval = setInterval(() => {
+          timeLeft--; document.getElementById('timer-display').innerText = `⏱️ ${timeLeft}s`;
+          if(timeLeft <= 0) { clearInterval(timerInterval); checkAnswer(null, "TIMEOUT", qData); }
+        }, 1000);
+      }
+    }
+    triggerMathRender();
+  }
+
+  function deleteCurrentQuizQuestion() {
+    if (currentQuestionIndex >= activeQuestions.length || !activeQuestions[currentQuestionIndex]) return;
+    if (!confirm("Permanently delete this question from your database?")) return;
+
+    clearInterval(timerInterval);
+    window.speechSynthesis.cancel();
+
+    const qData = activeQuestions[currentQuestionIndex];
+
+    // Remove from appData across all subjects/banks
+    for (const [sKey, subject] of Object.entries(appData)) {
+      if (sKey === 'activity' || !subject.banks) continue;
+      for (const [bKey, bank] of Object.entries(subject.banks)) {
+        const idx = bank.questions.indexOf(qData);
+        if (idx !== -1) {
+          bank.questions.splice(idx, 1);
+        }
+      }
+    }
+    saveData();
+
+    // Remove from active session array
+    activeQuestions.splice(currentQuestionIndex, 1);
+
+    if (activeQuestions.length === 0) {
+      showEndScreen();
+      return;
+    }
+
+    // Advance properly according to study mode
+    if (currentStudyMode === 'learn') {
+      if (learnPhase === 'teach') {
+        if (currentQuestionIndex >= activeQuestions.length || currentQuestionIndex - learnBatchStartIndex >= learnBatchSize) {
+          if (currentQuestionIndex > learnBatchStartIndex) {
+            learnPhase = 'quiz';
+            currentQuestionIndex = learnBatchStartIndex;
+            loadQuestion();
+          } else {
+            showEndScreen();
+          }
+        } else {
+          loadQuestion();
+        }
+      } else {
+        if (currentQuestionIndex >= activeQuestions.length) {
+          showEndScreen();
+        } else if (currentQuestionIndex - learnBatchStartIndex >= learnBatchSize) {
+          learnBatchStartIndex += learnBatchSize;
+          currentQuestionIndex = learnBatchStartIndex;
+          learnPhase = 'teach';
+          loadQuestion();
+        } else {
+          loadQuestion();
+        }
+      }
+    } else {
+      if (currentQuestionIndex < activeQuestions.length) {
+        loadQuestion();
+      } else {
+        showEndScreen();
+      }
+    }
+  }
+
+  function setupHotspotInteraction(qData) {
+      document.getElementById('options-container').style.display = 'none';
+      document.getElementById('hotspot-instruction').style.display = 'block';
+      quizImage.style.cursor = 'crosshair';
+      
+      quizImage.onclick = function(e) {
+          if(document.getElementById('next-btn').style.display === 'block') return;
+          
+          const rect = quizImage.getBoundingClientRect();
+          const clickXPercent = ((e.clientX - rect.left) / rect.width) * 100;
+          const clickYPercent = ((e.clientY - rect.top) / rect.height) * 100;
+          
+          const target = qData.hotspot;
+          const dist = Math.sqrt(Math.pow(clickXPercent - target.x, 2) + Math.pow(clickYPercent - target.y, 2));
+          const isCorrect = dist <= target.radius;
+          
+          const feedback = document.getElementById('hotspot-feedback');
+          feedback.style.left = clickXPercent + '%';
+          feedback.style.top = clickYPercent + '%';
+          feedback.style.borderColor = isCorrect ? 'var(--correct)' : 'var(--incorrect)';
+          feedback.style.display = 'block';
+          
+          checkAnswer(null, isCorrect ? currentCorrectOptionText : "WRONG", qData);
+          if(!isCorrect) {
+              setTimeout(() => {
+                  feedback.style.left = target.x + '%';
+                  feedback.style.top = target.y + '%';
+                  feedback.style.borderColor = 'var(--correct)';
+                  feedback.style.borderStyle = 'dashed';
+              }, 800);
+          }
+      };
+  }
+
+  function checkAnswer(clickedBtn, selectedText, qData) {
+    clearInterval(timerInterval);
+    const isCorrect = selectedText === currentCorrectOptionText;
+    
+    const dateStr = new Date().toISOString().split('T')[0];
+    appData.activity[dateStr] = (appData.activity[dateStr] || 0) + 1;
+    
+    qData.attempts++;
+    if (isCorrect) { qData.hits++; qData.bucket = Math.min(3, qData.bucket + 1); } 
+    else { qData.bucket = Math.max(0, qData.bucket - 1); }
+    saveData();
+
+    if(currentStudyMode === 'flashcard') {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < activeQuestions.length) loadQuestion(); else showEndScreen();
+    } else {
+      if(clickedBtn) {
+          const buttons = document.querySelectorAll('.option');
+          buttons.forEach(btn => {
+            btn.disabled = true;
+            if (btn.innerText === currentCorrectOptionText) btn.classList.add('btn-correct');
+            else if (btn === clickedBtn && !isCorrect) btn.classList.add('btn-incorrect');
+          });
+      }
+      const nextBtn = document.getElementById('next-btn');
+      nextBtn.innerText = "Next Question";
+      nextBtn.style.display = 'block';
+    }
+  }
+
+  function nextQuestion() {
+    if (currentStudyMode === 'learn') {
+      if (learnPhase === 'teach') {
+        currentQuestionIndex++;
+        if (currentQuestionIndex >= activeQuestions.length || currentQuestionIndex - learnBatchStartIndex >= learnBatchSize) {
+          learnPhase = 'quiz'; currentQuestionIndex = learnBatchStartIndex;
+        }
+        loadQuestion();
+      } else {
+        currentQuestionIndex++;
+        if (currentQuestionIndex >= activeQuestions.length) { showEndScreen(); } 
+        else if (currentQuestionIndex - learnBatchStartIndex >= learnBatchSize) {
+          learnBatchStartIndex += learnBatchSize; currentQuestionIndex = learnBatchStartIndex; learnPhase = 'teach'; loadQuestion();
+        } else { loadQuestion(); }
+      }
+    } else {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < activeQuestions.length) loadQuestion();
+      else showEndScreen();
+    }
+  }
+
+  function showEndScreen() {
+    document.getElementById('question-text').innerText = "Session Complete!";
+    document.getElementById('question-text').style.display = 'block';
+    document.getElementById('quiz-image').style.display = 'none';
+    document.getElementById('options-container').style.display = 'none';
+    document.getElementById('learn-answer-box').style.display = 'none';
+    document.getElementById('hotspot-instruction').style.display = 'none';
+    fcBox.style.display = 'none'; document.getElementById('flashcard-controls').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('timer-display').style.display = 'none';
+    document.getElementById('quiz-action-buttons').style.display = 'none';
+    document.getElementById('bucket-badge').style.display = 'none';
+  }
+
+  function exitQuiz() { 
+    window.speechSynthesis.cancel(); 
+    if(quizOriginView === 'browse') openBrowse(currentSubjectKey, browseModeBanks);
+    else if(quizOriginView === 'subject' && currentSubjectKey) openSubject(currentSubjectKey);
+    else switchView('dashboard');
+  }
+
+  function manualSpeak() {
+    window.speechSynthesis.cancel(); const qData = activeQuestions[currentQuestionIndex]; let textToSpeak = qData.q;
+    if(isFlipped || currentStudyMode === 'mc' || currentStudyMode === 'timed' || (currentStudyMode === 'learn' && learnPhase === 'teach')) { textToSpeak += ". " + currentCorrectOptionText; }
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(textToSpeak));
+  }
+
+  // --- Flashcard Swiping ---
+  fcBox.addEventListener('click', () => {
+    if(isFlipped) return; isFlipped = true; document.getElementById('flashcard-answer').style.display = 'block';
+    document.getElementById('flashcard-instruction').innerText = "Swipe Left (Wrong) or Right (Correct)";
+    document.getElementById('flashcard-controls').style.display = 'flex';
+  });
+  fcBox.addEventListener('pointerdown', (e) => { if(!isFlipped) return; startX = e.clientX; fcBox.style.transition = 'none'; fcBox.setPointerCapture(e.pointerId); });
+  fcBox.addEventListener('pointermove', (e) => { if (!startX || !isFlipped) return; currentX = e.clientX - startX; fcBox.style.transform = `translateX(${currentX}px) rotate(${currentX * 0.05}deg)`; document.getElementById('swipe-indicators').style.opacity = Math.min(Math.abs(currentX)/100, 1); });
+  fcBox.addEventListener('pointerup', (e) => {
+    if (!startX || !isFlipped) return;
+    if (currentX > 100) handleFlashcardSwipe(true); else if (currentX < -100) handleFlashcardSwipe(false);
+    else { fcBox.style.transition = 'transform 0.3s ease'; fcBox.style.transform = `translateX(0px) rotate(0deg)`; document.getElementById('swipe-indicators').style.opacity = 0; }
+    startX = 0;
+  });
+  function handleFlashcardSwipe(isCorrect) { const qData = activeQuestions[currentQuestionIndex]; checkAnswer(null, isCorrect ? currentCorrectOptionText : "WRONG", qData); }
+  function toggleFlag() { const qData = activeQuestions[currentQuestionIndex]; qData.flagged = !qData.flagged; saveData(); const flagBtn = document.getElementById('flag-btn'); flagBtn.innerText = qData.flagged ? "🚩 Unflag" : "⚐ Flag"; flagBtn.style.color = qData.flagged ? "#fff" : "var(--primary)"; flagBtn.style.background = qData.flagged ? "#e74c3c" : "transparent"; }
+
+  // Manage Data & Helpers
+  function renderSearchResults() {
+    const query = document.getElementById('search-input').value.toLowerCase();
+    const container = document.getElementById('search-results-container'); container.innerHTML = '';
+    if(query.length < 3) return;
+    for(const subjKey in appData) { if(subjKey === 'activity') continue;
+      for(const bKey in appData[subjKey].banks) {
+        appData[subjKey].banks[bKey].questions.forEach(q => {
+          if(q.q.toLowerCase().includes(query) || q.options[0].toLowerCase().includes(query)) {
+            const div = document.createElement('div'); div.className = 'card';
+            div.innerHTML = `<div class="stats">${appData[subjKey].name} > ${appData[subjKey].banks[bKey].name} ${q.flagged?'🚩':''}</div><p style="margin: 0.5rem 0;"><strong>Q:</strong> ${q.q}</p><p style="margin: 0; color: var(--correct);"><strong>A:</strong> ${q.options[0]}</p>`;
+            container.appendChild(div);
+          }
+        });
+      }
+    }
+    triggerMathRender();
+  }
+  function populateManageSelects() {
+    const sSelect = document.getElementById('manage-subject-select'), aSelect = document.getElementById('add-bank-subj-select');
+    sSelect.innerHTML = ''; aSelect.innerHTML = '';
+    for (const [key, subject] of Object.entries(appData)) { if(key === 'activity') continue; sSelect.add(new Option(subject.name, key)); aSelect.add(new Option(subject.name, key)); }
+    updateBankDropdown();
+  }
+  function updateBankDropdown() {
+    const subjKey = document.getElementById('manage-subject-select').value, bankSelect = document.getElementById('manage-bank-select'); bankSelect.innerHTML = '';
+    if(appData[subjKey] && appData[subjKey].banks) { for (const [bKey, bank] of Object.entries(appData[subjKey].banks)) bankSelect.add(new Option(bank.name, bKey)); }
+  }
+  function showMsg(text, isError=false) { const msg = document.getElementById('msg-box'); msg.innerText = text; msg.style.color = isError ? 'var(--incorrect)' : 'var(--correct)'; msg.style.display = 'block'; setTimeout(() => msg.style.display = 'none', 4000); }
+  function addSingleQuestion() {
+    const s = document.getElementById('manage-subject-select').value, b = document.getElementById('manage-bank-select').value;
+    const text = cleanCiteTags(document.getElementById('man-q').value), img = document.getElementById('man-img').value;
+    const opt1 = cleanCiteTags(document.getElementById('man-opt1').value), opt2 = cleanCiteTags(document.getElementById('man-opt2').value), opt3 = cleanCiteTags(document.getElementById('man-opt3').value), opt4 = cleanCiteTags(document.getElementById('man-opt4').value);
+    if (!text || !opt1 || !opt2 || !opt3 || !opt4) return showMsg("Please fill out the question and all 4 options.", true);
+    appData[s].banks[b].questions.push({ q: text, image: img || null, options: [opt1, opt2, opt3, opt4], attempts: 0, hits: 0, bucket: 0, flagged: false });
+    saveData(); ['man-q', 'man-img', 'man-opt1', 'man-opt2', 'man-opt3', 'man-opt4'].forEach(id => document.getElementById(id).value = ''); showMsg("Single question successfully added!");
+  }
+  function importCSV() {
+    const file = document.getElementById('csv-file').files[0]; if(!file) return showMsg("Please select a file first.", true);
+    const s = document.getElementById('manage-subject-select').value, b = document.getElementById('manage-bank-select').value;
+    const reader = new FileReader();
+    reader.onload = e => {
+      let count = 0; e.target.result.split('\n').forEach(row => { const cols = row.split(',').map(c => cleanCiteTags(c.trim().replace(/^"|"$/g, '')));
+        if(cols.length >= 5) { appData[s].banks[b].questions.push({ q: cols[0], options: [cols[1], cols[2], cols[3], cols[4]], attempts: 0, hits: 0, bucket: 0, flagged: false }); count++; }
+      });
+      saveData(); document.getElementById('csv-file').value = ''; showMsg(`Imported ${count} questions via CSV.`);
+    }; reader.readAsText(file);
+  }
+  function bulkImport() {
+    const s = document.getElementById('manage-subject-select').value, b = document.getElementById('manage-bank-select').value;
+    try {
+      const parsed = JSON.parse(document.getElementById('bulk-json').value); let count = 0;
+      parsed.forEach(item => { if (item.q && item.options && item.options.length >= 1) { appData[s].banks[b].questions.push({ q: cleanCiteTags(item.q), options: item.options.map(o => cleanCiteTags(o)), image: item.image || null, hotspot: item.hotspot || null, attempts: 0, hits: 0, bucket: 0, flagged: false }); count++; } });
+      saveData(); document.getElementById('bulk-json').value = ''; showMsg(`Imported ${count} JSON questions!`);
+    } catch (e) { showMsg("Error: Invalid JSON format.", true); }
+  }
+  function addSubject() {
+    const name = document.getElementById('new-subj-name').value.trim(); if(!name) return;
+    const key = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    if(!appData[key]) { appData[key] = { name: name, banks: { "default": { name: "General Concepts", questions: [] } } }; saveData(); populateManageSelects(); document.getElementById('new-subj-name').value = ''; }
+  }
+  function addBank() {
+    const s = document.getElementById('add-bank-subj-select').value, name = document.getElementById('new-bank-name').value.trim(); if(!name || !s) return;
+    const bKey = name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
+    appData[s].banks[bKey] = { name: name, questions: [] }; saveData(); populateManageSelects(); document.getElementById('new-bank-name').value = '';
+  }
+  function exportData() { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData)); a.download = "forestry_db_backup.json"; document.body.appendChild(a); a.click(); a.remove(); }
+  function triggerMathRender() { if(window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}]}); }
+  window.onload = initApp;
+</script>
+
+</body>
+</html>
+```[cite: 570]
