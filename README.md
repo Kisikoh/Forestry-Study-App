@@ -11,3 +11,7 @@ Some features of the app include: dark mode, search (search all banks for terms,
 It is also possible to make questions with photots/diagrams
 
 Hope you enjoy
+
+Changelog/
+  V6.2.2 Adds auto delete duplicates when importing from backup
+  V6.2.1 First Public Version On Github
