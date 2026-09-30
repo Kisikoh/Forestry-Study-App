@@ -1,7 +1,13 @@
-This is a lightweight study app to help ya study
-To start: Download the latestest version of the HTML file and then open it in your browser
-App is pretty straightfoward but there is a manual tab with instructions just in case
-If you know me and want my current question data base download the JSON file then go to manage data page and import the json file, then you qill have latests question set
-You can make your own questions manualy or use the prompt in the manual page in a LLM to automaticlaly generate a JSON file from whatever you upload (textbook, slides, etc) that you can quickly import
+This is a lightweight study app designed to run offline in a browser
 
-Enjoy, if you notice a bug or have a suggestion and ya know me give me a holler
+To start downloaded the latest version of the Stuty app HTML file to you device and open in a browser
+
+Using the app is pretty simple but there is a manual page with a little quick reference guide
+
+By default when you download the app there will be zero questions in the bank If youd like the latest bank mad by myself download the JSON file, navigate to the manage data page and open the json file in the import section. Questions will be automatically added to the coresponding subjects. The app is built with a feature to automatically delete duplicates. This is so that when a new backup file is available and you import it you dont get duplicates of the old questions
+
+Some features of the app include: dark mode, search (search all banks for terms, etc), various study modes (learn, flasdhcards, timed exam etc), a tracker for your  study progress, ability to add questions from a cvs file/manually/json file (prompt is included in the manual page to paste in an llm alongside your course materials such as textbook or slides to make a JSON file that you can quickly import), ability to flag hard questions, delete questions etc
+
+It is also possible to make questions with photots/diagrams
+
+Hope you enjoy
