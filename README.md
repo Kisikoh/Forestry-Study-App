@@ -11,3 +11,6 @@ Some features of the app include: dark mode, search (search all banks for terms,
 It is also possible to make questions with photots/diagrams
 
 Hope you enjoy
+
+IMPORTANT:
+If using an LLM to generate JSON files make sure you instruct it to keep an even distribution in answer length otherwise LLMs will often make the correct option the longest one which means you will likely start just using heuristics instread of actually knowing the right answer
